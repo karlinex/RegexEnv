@@ -14,40 +14,47 @@ class RegexEnv(gym.Env):
     # "(?<= )[A-Za-z][^,][^ ][^iela ][^,][^,][^/][^ ][a-p]*+[^ ] iela [^<]\d++(?= )"
     # "(?<= )[^_][a-p]*+[^_][r-v][^_][^/][^ ][a-p]*+\w[^_][a-p]*+ \d++(?= )"
 
-    def __init__(self, text_length):
-        self.text_length = text_length
+    def __init__(self, max_text_length):
+        self.lv_address_list = self.loadAddressesFromCsv()
+        self.max_text_length = max_text_length
         self.address_text = ""
-        self.action_state = np.full(text_length, -1)
-        self.action_space = gym.spaces.Discrete(123)
-        self.observation_space = gym.spaces.Box(low=-1, high=122, shape=(text_length,), dtype=np.int64)
+        self.action_state = np.full(max_text_length, -1)
+        self.action_space = gym.spaces.Discrete(383)
+        self.observation_space = gym.spaces.Box(low=-1, high=382, shape=(max_text_length,), dtype=np.int64)
+
+    def loadAddressesFromCsv(self):
+        address_list = []
+        with open(self.filename, mode="r", encoding="utf-8-sig") as csvFile:
+            data_reader = csv.reader(csvFile)
+            for row in data_reader:
+                address_list.append(row[0].replace(';', ' '))
+
+        return address_list
+
 
     # Reward method: validates the generated address and returns a reward.
     def validateAddress(self, address_text):
         if not bool(re.match(self.pattern, address_text)): # if address does not match the Regex pattern
-            return 1
+            return 0
 
-        # Compare the generated address with addresses from CSV file
-        with open(self.filename, mode="r", encoding="utf-8-sig") as csvFile:
-            dataReader = csv.reader(csvFile)
-            for row in dataReader:
-                levenshtein_distance = enchant.utils.levenshtein(row[0], address_text)
-                # TODO: Need to implement point system for the levenshtein distance
-                # Average value from all distances ?
+        min_diff = None
+        for address in self.lv_address_list:
+            diff = enchant.utils.levenshtein(address_text, address)
+            if min_diff == None or min_diff > diff:
+                min_diff = diff
 
-        return 0
+        return min_diff
 
     def step(self, action):
         self.address_text += chr(action) # Append the symbol to text (corresponding ASCII table character to the action int)
         self.action_state[len(self.address_text) - 1] = action
-
         reward = self.validateAddress(self.address_text)
-
-        done = (reward == 1)
+        done = (reward == 0 or len(self.address_text) == self.max_text_length)
 
         return self.action_state, reward, done, {}
 
 
     def reset(self):
         self.address_text = ""
-        self.action_state = np.full((1, self.text_length), -1)
+        self.action_state = np.full((1, self.max_text_length), -1)
         return self.action_state
