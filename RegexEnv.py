@@ -17,10 +17,13 @@ class RegexEnv(gym.Env):
     def __init__(self, max_text_length):
         self.lv_address_list = self.loadAddressesFromCsv()
         self.max_text_length = max_text_length
-        self.address_text = ""
-        self.action_state = np.full(max_text_length, -1)
+        self.resetText()
         self.action_space = gym.spaces.Discrete(383)
         self.observation_space = gym.spaces.Box(low=-1, high=382, shape=(max_text_length,), dtype=np.int64)
+
+    def resetText(self):
+        self.address_text = ""
+        self.action_state = np.full((self.max_text_length,), -1)
 
     def loadAddressesFromCsv(self):
         address_list = []
@@ -30,7 +33,6 @@ class RegexEnv(gym.Env):
                 address_list.append(row[0].replace(';', ' '))
 
         return address_list
-
 
     # Reward method: validates the generated address and returns a reward.
     def validateAddress(self, address_text):
@@ -53,8 +55,6 @@ class RegexEnv(gym.Env):
 
         return self.action_state, reward, done, {}
 
-
     def reset(self):
-        self.address_text = ""
-        self.action_state = np.full((1, self.max_text_length), -1)
+        self.resetText()
         return self.action_state
