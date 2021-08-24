@@ -91,7 +91,7 @@ class Model(nn.Module):
         # for loop, squeeze nedrikst veikt
         # ja B = 3 tad piem lengths = [1, 4, 10]
 
-        s_t0 = self.embeddings.forward(s_t0)
+
 
         seq_s_t0: PackedSequence = torch.nn.utils.rnn.pack_padded_sequence(
             s_t0,
@@ -99,7 +99,12 @@ class Model(nn.Module):
             batch_first=True,
             enforce_sorted=False)
 
-        seq_rrn_out, _ = self.rnn.forward(seq_s_t0)
+        s_t0_data = self.embeddings.forward(seq_s_t0.data)
+        seq_s_emb_t0 = PackedSequence(
+            s_t0_data, seq_s_t0.batch_sizes, seq_s_t0.sorted_indices, seq_s_t0.unsorted_indices
+        )
+
+        seq_rrn_out, _ = self.rnn.forward(seq_s_emb_t0)
 
         rrn_out = torch.nn.utils.rnn.pad_packed_sequence(
             seq_rrn_out,
