@@ -79,7 +79,6 @@ class Model(nn.Module):
         print(f'model size: {size_params}')
 
     def forward(self, s_t0):
-
         lengths = []
         for idx in range(len(s_t0)):
             each = s_t0[idx]
@@ -90,8 +89,6 @@ class Model(nn.Module):
         # lengths = torch.where(torch.squeeze(s_t0, 1)!=-1)
         # for loop, squeeze nedrikst veikt
         # ja B = 3 tad piem lengths = [1, 4, 10]
-
-
 
         seq_s_t0: PackedSequence = torch.nn.utils.rnn.pack_padded_sequence(
             s_t0,
