@@ -68,7 +68,7 @@ class Model(nn.Module):
 
         self.fc = torch.nn.Sequential(
             nn.BatchNorm1d(num_features=hidden_size),
-            nn.Linear(in_features=state_size, out_features=hidden_size),
+            nn.Linear(in_features=hidden_size, out_features=hidden_size),
             nn.BatchNorm1d(num_features=hidden_size),
             nn.LeakyReLU(),
             nn.Linear(in_features=hidden_size, out_features=action_size),
@@ -79,12 +79,12 @@ class Model(nn.Module):
         print(f'model size: {size_params}')
 
     def forward(self, s_t0):
-        lengths = []
+        lengths_s = []
         for idx in range(len(s_t0)):
             each = s_t0[idx]
-            length = len(each[each >= 0])
-            lengths.append(torch.LongTensor(length))
-        lengths = torch.stack(lengths)
+            length_s = len(each[each >= 0])
+            lengths_s.append(torch.LongTensor([length_s]).squeeze())
+        lengths = torch.stack(lengths_s)
 
         # lengths = torch.where(torch.squeeze(s_t0, 1)!=-1)
         # for loop, squeeze nedrikst veikt
@@ -103,7 +103,7 @@ class Model(nn.Module):
 
         seq_rrn_out, _ = self.rnn.forward(seq_s_emb_t0)
 
-        rrn_out = torch.nn.utils.rnn.pad_packed_sequence(
+        rrn_out, _ = torch.nn.utils.rnn.pad_packed_sequence(
             seq_rrn_out,
             batch_first=True
         )
