@@ -3,28 +3,23 @@ from torch.nn.utils.rnn import PackedSequence
 from RegexEnv import RegexEnv
 import copy
 
-import gym  # pip install git+https://github.com/openai/gym
 import argparse
 import numpy as np
 import torch
 import torch.nn as nn
-from random import randint, choice
 
 import matplotlib
 
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
-# !pip3 install box2d-py
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-device', default='cuda', type=str)
-parser.add_argument('-is_render', default=False, type=lambda x: (str(x).lower() == 'true'))
 
 parser.add_argument('-learning_rate', default=1e-3, type=float)
-parser.add_argument('-batch_size', default=512, type=int)
-parser.add_argument('-episodes', default=10000, type=int)
-
+parser.add_argument('-batch_size', default=32, type=int)
+parser.add_argument('-episodes', default=1000, type=int)
 
 parser.add_argument('-replay_buffer_size', default=10000, type=int)
 parser.add_argument('-target_alpha', default=0.5, type=float)
@@ -34,10 +29,10 @@ parser.add_argument('-replay_times', default=1, type=int)
 
 parser.add_argument('-hidden_size', default=512, type=int)
 
-parser.add_argument('-gamma', default=0.7, type=float)
+parser.add_argument('-gamma', default=0.8, type=float)
 parser.add_argument('-epsilon', default=0.9, type=float)
 parser.add_argument('-epsilon_min', default=0.1, type=float)
-parser.add_argument('-epsilon_decay', default=0.9995, type=float)
+parser.add_argument('-epsilon_decay', default=0.999, type=float)
 
 parser.add_argument('-max_steps', default=200, type=int)
 
@@ -163,10 +158,6 @@ class ReplayPriorityMemory:
 
 
 class DQNAgent:
-    encoding_ranges = [(49, 57), (65, 86), (90, 90), (97, 118), (122, 122), (256, 257), (268, 269), (274, 275),
-                       (286, 287),
-                       (298, 299), (310, 311), (315, 316), (325, 326), (352, 353), (362, 363), (381, 382)]
-
     def __init__(self, state_size, action_size):
         self.is_double = True
 
@@ -205,8 +196,7 @@ class DQNAgent:
                 s_t0 = torch.LongTensor(s_t0).to(args.device)
                 s_t0 = s_t0.unsqueeze(dim=0)
                 if s_t0[0, 0].item() == -1:
-                    char_code = randint(*choice(self.encoding_ranges))
-                    s_t0[0, 0] = char_code
+                    s_t0[0, 0] = 0
 
                 self.q_model = self.q_model.eval()
                 q_all = self.q_model.forward(s_t0)
@@ -263,9 +253,20 @@ agent = DQNAgent(
     env.observation_space.shape[0],
     env.action_space.n
 )
+plt.figure()
 
 is_end = False
 t_total = 0
+
+score_plt = plt.subplot(3, 1, 1)
+plt.ylabel('Score')
+loss_plt = plt.subplot(3, 1, 2)
+plt.ylabel('Loss')
+steps_plt = plt.subplot(3, 1, 3)
+plt.ylabel('Steps')
+plt.xlabel('Episode')
+plt.ion()
+plt.show()
 
 for e in range(args.episodes):
     s_t0 = env.reset()
@@ -274,9 +275,6 @@ for e in range(args.episodes):
     for t in range(args.max_steps):
         t_total += 1
 
-        # if args.is_render and len(all_scores):
-        #     if e % 10 == 0:
-        #         env.render()
         a_t0 = agent.act(s_t0)
         s_t1, r_t1, is_end, _ = env.step(a_t0)
 
@@ -310,19 +308,18 @@ for e in range(args.episodes):
     all_t.append(t)
     print(
         f'episode: {e}/{args.episodes} '
+        f'generated text: {env.address_text} '
         f'loss: {all_losses[-1]} '
         f'score: {reward_total} '
         f't: {t} '
         f'e: {agent.epsilon} '
         f'mem: {len(agent.replay_memory)} ')
 
-# text_length = 30
-# env = RegexEnv(text_length)
-# state_shape = env.observation_space.shape
-# for t in range(text_length):
-#     action = env.action_space.sample()
-#     observation, reward, done, info = env.step(action)
-#     if done:
-#         print("Episode finished after {} timesteps".format(t+1))
-#         break
+    score_plt.plot(all_scores)
+    loss_plt.plot(all_losses)
+    steps_plt.plot(all_t)
+
+    plt.draw()
+    plt.pause(0.001)
+
 env.close()
