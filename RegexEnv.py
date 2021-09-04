@@ -1,7 +1,6 @@
 import regex as re
 import gym
 import numpy as np
-import enchant
 import requests
 import os
 
@@ -58,7 +57,7 @@ class RegexEnv(gym.Env):
         return address_list
 
     def getAllowedCharMap(self):
-        ranges = [(65, 126), (256, 382)]
+        ranges = [(65, 86), (90, 118), (122, 126), (256, 257), (268, 269), (274, 275), (290, 291), (298, 299), (310, 311), (315, 316), (325, 326), (352, 353), (362, 363), (381, 381)]
         allowed_chars = []
         for r in ranges:
             for n in range(r[0], r[1] + 1):
@@ -79,7 +78,7 @@ class RegexEnv(gym.Env):
 
         min_diff = None
         for address in self.lv_address_list:
-            diff = enchant.utils.levenshtein(address_text, address)
+            diff = self.levenshtein(address_text, address) #enchant.utils.levenshtein(address_text, address)
             if min_diff == None or min_diff > diff:
                 min_diff = diff
 
@@ -87,9 +86,12 @@ class RegexEnv(gym.Env):
 
     def step(self, action):
         self.address_text += chr(self.char_map[action]) # Append the symbol to text (corresponding ASCII table character to the action int)
-        self.action_state[len(self.address_text) - 1] = action
+        address_length = len(self.address_text)
+        self.action_state[address_length - 1] = action
         reward = self.validateAddress(self.address_text)
         done = (reward == 0 or len(self.address_text) == self.max_text_length)
+        if address_length >= 2 and action == self.action_state[address_length - 2]:
+            reward = -50
 
         return self.action_state, reward, done, {}
 
@@ -97,3 +99,21 @@ class RegexEnv(gym.Env):
         self.previous_text = self.address_text
         self.resetText()
         return self.action_state
+
+    def levenshtein(self, s1, s2):
+        if len(s1) < len(s2):
+            return self.levenshtein(s2, s1)
+        if not s1:
+            return len(s2)
+
+        previous_row = range(len(s2) + 1)
+        for i, c1 in enumerate(s1):
+            current_row = [i + 1]
+            for j, c2 in enumerate(s2):
+                insertions = previous_row[j + 1] + 1
+                deletions = current_row[j] + 1
+                substitutions = previous_row[j] + (c1 != c2)
+                current_row.append(min(insertions, deletions, substitutions))
+            previous_row = current_row
+
+        return previous_row[-1]

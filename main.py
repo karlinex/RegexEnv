@@ -1,3 +1,6 @@
+import csv
+from datetime import datetime
+
 from torch.nn.utils.rnn import PackedSequence
 
 from RegexEnv import RegexEnv
@@ -29,7 +32,7 @@ parser.add_argument('-replay_times', default=1, type=int)
 
 parser.add_argument('-hidden_size', default=512, type=int)
 
-parser.add_argument('-gamma', default=0.8, type=float)
+parser.add_argument('-gamma', default=0.9, type=float)
 parser.add_argument('-epsilon', default=0.9, type=float)
 parser.add_argument('-epsilon_min', default=0.1, type=float)
 parser.add_argument('-epsilon_decay', default=0.999, type=float)
@@ -259,14 +262,18 @@ is_end = False
 t_total = 0
 
 score_plt = plt.subplot(3, 1, 1)
-plt.ylabel('Score')
+plt.ylabel('Punkti')
 loss_plt = plt.subplot(3, 1, 2)
-plt.ylabel('Loss')
+plt.ylabel('Kļūda')
 steps_plt = plt.subplot(3, 1, 3)
-plt.ylabel('Steps')
-plt.xlabel('Episode')
+plt.ylabel('Soļi')
+plt.xlabel('Episodes')
 plt.ion()
 plt.show()
+
+filename = f"results/{ datetime.now().strftime('%Y_%m_%d-%H_%M_%S') }.csv"
+result_file = open(filename, 'w', newline = '', encoding='utf-8-sig')
+csv_writer = csv.writer(result_file, delimiter=';')
 
 for e in range(args.episodes):
     s_t0 = env.reset()
@@ -315,6 +322,8 @@ for e in range(args.episodes):
         f'e: {agent.epsilon} '
         f'mem: {len(agent.replay_memory)} ')
 
+    csv_writer.writerow([e, env.address_text, all_losses[-1], reward_total, t, agent.epsilon, len(agent.replay_memory)])
+    result_file.flush()
     score_plt.plot(all_scores)
     loss_plt.plot(all_losses)
     steps_plt.plot(all_t)
@@ -322,4 +331,5 @@ for e in range(args.episodes):
     plt.draw()
     plt.pause(0.001)
 
+result_file.close()
 env.close()
