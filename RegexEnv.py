@@ -57,7 +57,7 @@ class RegexEnv(gym.Env):
         return address_list
 
     def getAllowedCharMap(self):
-        ranges = [(65, 86), (90, 118), (122, 126), (256, 257), (268, 269), (274, 275), (290, 291), (298, 299), (310, 311), (315, 316), (325, 326), (352, 353), (362, 363), (381, 381)]
+        ranges = [(32, 86), (90, 118), (122, 126), (256, 257), (268, 269), (274, 275), (290, 291), (298, 299), (310, 311), (315, 316), (325, 326), (352, 353), (362, 363), (381, 381)]
         allowed_chars = []
         for r in ranges:
             for n in range(r[0], r[1] + 1):
@@ -91,7 +91,7 @@ class RegexEnv(gym.Env):
         reward = self.validateAddress(self.address_text)
         done = (reward == 0 or len(self.address_text) == self.max_text_length)
         if address_length >= 2 and action == self.action_state[address_length - 2]:
-            reward = -50
+            reward = -10
 
         return self.action_state, reward, done, {}
 

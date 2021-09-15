@@ -21,10 +21,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-device', default='cuda', type=str)
 
 parser.add_argument('-learning_rate', default=1e-3, type=float)
-parser.add_argument('-batch_size', default=32, type=int)
+parser.add_argument('-batch_size', default=64, type=int)
 parser.add_argument('-episodes', default=1000, type=int)
 
-parser.add_argument('-replay_buffer_size', default=10000, type=int)
+parser.add_argument('-replay_buffer_size', default=2000, type=int)
 parser.add_argument('-target_alpha', default=0.5, type=float)
 parser.add_argument('-target_update', default=5000, type=int)
 
@@ -32,12 +32,12 @@ parser.add_argument('-replay_times', default=1, type=int)
 
 parser.add_argument('-hidden_size', default=512, type=int)
 
-parser.add_argument('-gamma', default=0.9, type=float)
+parser.add_argument('-gamma', default=0.6, type=float)
 parser.add_argument('-epsilon', default=0.9, type=float)
 parser.add_argument('-epsilon_min', default=0.1, type=float)
 parser.add_argument('-epsilon_decay', default=0.999, type=float)
 
-parser.add_argument('-max_steps', default=200, type=int)
+parser.add_argument('-max_steps', default=38, type=int)
 
 args, other_args = parser.parse_known_args()
 
@@ -184,11 +184,11 @@ class DQNAgent:
 
     def update_q_t_model(self):
         print('update_q_t_model')
-        state_curremt = self.q_t_model.state_dict()
+        state_current = self.q_t_model.state_dict()
         state_new = copy.copy(self.q_t_model.state_dict())
         alpha = args.target_alpha
         for key, state_new_each in state_new.items():
-            state_new[key] = alpha * state_new_each + (1 - alpha) * state_curremt[key]
+            state_new[key] = alpha * state_new_each + (1 - alpha) * state_current[key]
         self.q_t_model.load_state_dict(state_new)
 
     def act(self, s_t0):
@@ -245,8 +245,7 @@ class DQNAgent:
 
 
 # environment name
-text_length = 38
-env = RegexEnv(text_length)
+env = RegexEnv(args.max_steps)
 
 all_scores = []
 all_losses = []
@@ -267,7 +266,7 @@ loss_plt = plt.subplot(3, 1, 2)
 plt.ylabel('Kļūda')
 steps_plt = plt.subplot(3, 1, 3)
 plt.ylabel('Soļi')
-plt.xlabel('Episodes')
+plt.xlabel('Epizodes')
 plt.ion()
 plt.show()
 
